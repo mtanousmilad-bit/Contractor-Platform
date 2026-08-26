@@ -15,7 +15,6 @@ type ContractorProfile = {
   company_name: string | null;
   trade: string;
   location: string;
-  phone: string | null;
   bio: string | null;
   avatar_url: string | null;
   years_experience: number | null;
@@ -86,7 +85,6 @@ export default function ContractorDetailsPage() {
             company_name,
             trade,
             location,
-            phone,
             bio,
             avatar_url,
             years_experience,
@@ -429,17 +427,6 @@ export default function ContractorDetailsPage() {
                 Contact Contractor
               </Link>
 
-              {contractor.phone && (
-                <a
-                  href={`tel:${contractor.phone.replace(
-                    /\s+/g,
-                    ""
-                  )}`}
-                  className="bg-black text-white px-7 py-3 rounded-lg text-center font-semibold hover:bg-gray-800"
-                >
-                  Call Contractor
-                </a>
-              )}
             </div>
           </div>
         </section>

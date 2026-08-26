@@ -267,7 +267,6 @@ export default function ProfilePage() {
             company_name,
             trade,
             location,
-            phone,
             bio,
             years_experience,
             services,
@@ -276,20 +275,31 @@ export default function ProfilePage() {
         )
         .eq("id", user.id)
         .maybeSingle();
-
+const {
+  data: privateProfileData,
+  error: privateProfileError,
+} = await supabase
+  .from("contractor_private_profiles")
+  .select("phone")
+  .eq("id", user.id)
+  .maybeSingle();
       if (profileError) {
         setError(profileError.message);
         setLoading(false);
         return;
       }
-
+if (privateProfileError) {
+  setError(privateProfileError.message);
+  setLoading(false);
+  return;
+}
       if (data) {
         setProfile({
           full_name: data.full_name ?? "",
           company_name: data.company_name ?? "",
           trade: data.trade ?? "",
           location: data.location ?? "",
-          phone: data.phone ?? "",
+          phone: privateProfileData?.phone ?? "",
           bio: data.bio ?? "",
 
           years_experience:
@@ -472,9 +482,6 @@ export default function ProfilePage() {
               location:
                 profile.location.trim(),
 
-              phone:
-                profile.phone.trim() || null,
-
               bio:
                 profile.bio.trim() || null,
 
@@ -506,9 +513,28 @@ export default function ProfilePage() {
           saveError.message
         );
       }
+const { error: privateSaveError } =
+  await supabase
+    .from("contractor_private_profiles")
+    .upsert(
+      {
+        id: user.id,
+        phone: profile.phone.trim() || null,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "id",
+      }
+    );
 
+if (privateSaveError) {
+  throw new Error(
+    privateSaveError.message
+  );
+}
       if (
         avatarFile &&
+        
         oldAvatarPath &&
         oldAvatarPath !== newAvatarPath
       ) {
