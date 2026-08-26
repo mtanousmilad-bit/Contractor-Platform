@@ -1257,10 +1257,9 @@ export default function MyInvoicesPage() {
                             </h3>
 
                             <p className="text-blue-800 mt-1">
-                              You will be redirected to Stripe's
-                              secure test checkout. No real money
-                              will be charged.
-                            </p>
+  Online payments are temporarily unavailable
+  while Contractorhub is in pre-launch mode.
+</p>
                           </div>
 
                           <button
