@@ -906,6 +906,36 @@ export default function InvoicesPage() {
                     0
                 );
 
+              const remainingRatio =
+                Number.isFinite(
+                  invoiceAmount
+                ) &&
+                invoiceAmount > 0
+                  ? Math.max(
+                      0,
+                      Math.min(
+                        1,
+                        (invoiceAmount -
+                          refundedAmount) /
+                          invoiceAmount
+                      )
+                    )
+                  : 0;
+
+              const remainingPlatformFeeAmount =
+                Math.round(
+                  platformFeeAmount *
+                    remainingRatio *
+                    100
+                ) / 100;
+
+              const remainingContractorNetAmount =
+                Math.round(
+                  contractorNetAmount *
+                    remainingRatio *
+                    100
+                ) / 100;
+
               const remainingRefundableAmount =
                 Math.max(
                   0,
@@ -1147,7 +1177,7 @@ export default function InvoicesPage() {
                             <p className="text-xl font-bold mt-1 text-red-800">
                               -{" "}
                               {formatCurrency(
-                                platformFeeAmount
+                                remainingPlatformFeeAmount
                               )}
                             </p>
 
@@ -1165,12 +1195,12 @@ export default function InvoicesPage() {
 
                             <p className="text-xl font-bold mt-1 text-green-800">
                               {formatCurrency(
-                                contractorNetAmount
+                                remainingContractorNetAmount
                               )}
                             </p>
 
                             <p className="text-xs text-green-700 mt-1">
-                              Amount allocated to your Stripe account
+                              Amount remaining after refunds
                             </p>
                           </div>
 
