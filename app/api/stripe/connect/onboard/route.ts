@@ -32,20 +32,10 @@ export async function POST(
     { status: 503 }
   );
 }
-    const stripeSecretKey =
-      process.env.STRIPE_SECRET_KEY;
-const stripeMode =
-  stripeSecretKey?.startsWith("sk_live_")
-    ? "live"
-    : stripeSecretKey?.startsWith("sk_test_")
-      ? "test"
-      : "unknown";
+const stripeSecretKey =
+  process.env.STRIPE_SECRET_KEY;
 
-console.log("STRIPE CONNECT RUNTIME MODE:", {
-  stripeMode,
-  vercelEnv: process.env.VERCEL_ENV,
-});
-    const supabaseUrl =
+  const supabaseUrl =
       process.env.NEXT_PUBLIC_SUPABASE_URL;
 
     const supabasePublishableKey =
