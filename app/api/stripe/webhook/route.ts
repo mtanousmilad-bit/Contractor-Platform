@@ -596,18 +596,50 @@ async function syncDisputeTransferRecovery(
   dispute: Stripe.Dispute,
   status: string
 ) {
-  const transferId =
+  let latestCharge: Stripe.Charge =
+    charge;
+
+  let transferId =
     getObjectId(
-      charge.transfer as
+      latestCharge.transfer as
         | string
         | { id: string }
         | null
         | undefined
     );
 
+  /*
+    A dispute can arrive a few seconds before Stripe finishes
+    creating the destination transfer. Wait briefly and refresh
+    the charge before asking Stripe to retry the webhook.
+  */
+  for (
+    let attempt = 0;
+    !transferId && attempt < 6;
+    attempt += 1
+  ) {
+    await new Promise((resolve) =>
+      setTimeout(resolve, 1000)
+    );
+
+    latestCharge =
+      await stripe.charges.retrieve(
+        charge.id
+      );
+
+    transferId =
+      getObjectId(
+        latestCharge.transfer as
+          | string
+          | { id: string }
+          | null
+          | undefined
+      );
+  }
+
   if (!transferId) {
     throw new Error(
-      "Destination charge is missing its Stripe transfer."
+      "Destination transfer is not available yet. Stripe should retry this webhook."
     );
   }
 
@@ -993,23 +1025,35 @@ async function handleDisputeEvent(
     await stripe.charges
       .retrieve(chargeId);
 
-  const paymentIntentId =
-    getObjectId(
-      charge.payment_intent as
-        | string
-        | { id: string }
-        | null
-        | undefined
-    );
+ const paymentIntentId =
+  getObjectId(
+    charge.payment_intent as
+      | string
+      | { id: string }
+      | null
+      | undefined
+  );
 
-  const invoice =
-    await findInvoiceForStripeObject(
-      adminSupabase,
-      {
-        paymentIntentId,
-        chargeId,
-      }
-    );
+const paymentIntent =
+  paymentIntentId
+    ? await stripe.paymentIntents.retrieve(
+        paymentIntentId
+      )
+    : null;
+
+const metadataInvoiceId =
+  paymentIntent?.metadata?.invoice_id ??
+  null;
+
+const invoice =
+  await findInvoiceForStripeObject(
+    adminSupabase,
+    {
+      invoiceId: metadataInvoiceId,
+      paymentIntentId,
+      chargeId,
+    }
+  );
 
   if (!invoice) {
     console.warn(
@@ -1142,14 +1186,43 @@ async function handleDisputeEvent(
     in the contractor's favour, repay exactly the amount previously
     recovered. Both operations use Stripe idempotency keys.
   */
+ const metadataContractorNetCents =
+  Number(
+    paymentIntent?.metadata
+      ?.contractor_net_amount_cents
+  );
+
+const metadataDestinationAccountId =
+  paymentIntent?.metadata
+    ?.stripe_destination_account_id ??
+  null;
+
+const recoveryInvoice = {
+  ...invoice,
+
+  contractor_net_amount:
+    invoice.contractor_net_amount ??
+    (Number.isFinite(
+      metadataContractorNetCents
+    ) &&
+    metadataContractorNetCents >= 0
+      ? metadataContractorNetCents /
+        100
+      : null),
+
+  stripe_destination_account_id:
+    invoice
+      .stripe_destination_account_id ??
+    metadataDestinationAccountId,
+};
   const recovery =
-    await syncDisputeTransferRecovery(
-      stripe,
-      invoice,
-      charge,
-      dispute,
-      status
-    );
+  await syncDisputeTransferRecovery(
+    stripe,
+    recoveryInvoice,
+    charge,
+    dispute,
+    status
+  );
 
   return NextResponse.json({
     received: true,
@@ -1639,10 +1712,6 @@ async function handleCheckoutEvent(
           100,
         stripe_destination_account_id:
           expectedDestination,
-        refund_status: "none",
-        refunded_amount: 0,
-        dispute_status: "none",
-        customer_seen: true,
         contractor_seen: false,
         updated_at:
           new Date()

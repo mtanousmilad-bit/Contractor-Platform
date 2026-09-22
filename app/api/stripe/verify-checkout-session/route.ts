@@ -534,7 +534,6 @@ export async function POST(
             100,
           stripe_destination_account_id:
             expectedDestination,
-          customer_seen: true,
           contractor_seen: false,
           updated_at:
             new Date()
