@@ -8,7 +8,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-
+import { TRADE_OPTIONS } from "@/lib/trades";
 type AccountType =
   | "customer"
   | "contractor";
@@ -411,19 +411,6 @@ export default function ContractorsPage() {
     }
   }
 
-  const tradeOptions = [
-    "Builder",
-    "Carpenter",
-    "Electrician",
-    "Plumber",
-    "Painter",
-    "Tiler",
-    "Landscaper",
-    "Concreter",
-    "Roofer",
-    "Other",
-  ];
-
   const filteredContractors =
     useMemo(() => {
       const normalizedSearch =
@@ -645,7 +632,7 @@ export default function ContractorsPage() {
                   All Trades
                 </option>
 
-                {tradeOptions.map(
+                {TRADE_OPTIONS.map(
                   (trade) => (
                     <option
                       key={trade}

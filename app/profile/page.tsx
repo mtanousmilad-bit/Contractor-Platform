@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-
+import { TRADE_OPTIONS } from "@/lib/trades";
 type ProfileForm = {
   full_name: string;
   company_name: string;
@@ -836,49 +836,15 @@ if (privateSaveError) {
                 required
                 className="w-full border p-3 rounded-lg"
               >
-                <option value="" disabled>
+               <option value="" disabled>
                   Select Trade
                 </option>
 
-                <option value="Builder">
-                  Builder
-                </option>
-
-                <option value="Carpenter">
-                  Carpenter
-                </option>
-
-                <option value="Electrician">
-                  Electrician
-                </option>
-
-                <option value="Plumber">
-                  Plumber
-                </option>
-
-                <option value="Painter">
-                  Painter
-                </option>
-
-                <option value="Tiler">
-                  Tiler
-                </option>
-
-                <option value="Landscaper">
-                  Landscaper
-                </option>
-
-                <option value="Concreter">
-                  Concreter
-                </option>
-
-                <option value="Roofer">
-                  Roofer
-                </option>
-
-                <option value="Other">
-                  Other
-                </option>
+                {TRADE_OPTIONS.map((trade) => (
+                  <option key={trade} value={trade}>
+                    {trade}
+                  </option>
+                ))}
               </select>
             </div>
 

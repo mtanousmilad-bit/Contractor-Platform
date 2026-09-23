@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
+import { TRADE_OPTIONS } from "@/lib/trades";
 export default function Join() {
   const [step, setStep] = useState(1);
 
@@ -89,14 +89,16 @@ export default function Join() {
 
 
             <select className="w-full border p-3 rounded-lg">
-              <option>Select Trade</option>
-              <option>Bricklayer</option>
-              <option>Carpenter</option>
-              <option>Electrician</option>
-              <option>Plumber</option>
-              <option>Landscaper</option>
-              <option>Builder</option>
-            </select>
+  <option value="">
+    Select Trade
+  </option>
+
+  {TRADE_OPTIONS.map((trade) => (
+    <option key={trade} value={trade}>
+      {trade}
+    </option>
+  ))}
+</select>
 
 
             <input
