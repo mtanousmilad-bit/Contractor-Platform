@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -23,6 +23,25 @@ export default function AuthPage() {
   >("");
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(
+      window.location.search
+    );
+
+    if (params.get("mode") === "signup") {
+      setIsLogin(false);
+    }
+
+    const requestedAccountType = params.get("type");
+
+    if (
+      requestedAccountType === "contractor" ||
+      requestedAccountType === "customer"
+    ) {
+      setAccountType(requestedAccountType);
+    }
+  }, []);
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
