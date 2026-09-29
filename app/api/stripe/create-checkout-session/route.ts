@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { checkoutWindow } from "@/lib/stripe/checkout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -459,7 +460,10 @@ export async function POST(
 
           if (
             usesCurrentConnectSetup &&
-            usesCustomerCreation
+            usesCustomerCreation &&
+            existingSession.amount_total === amountInCents &&
+            existingSession.currency === "aud" &&
+            existingSession.client_reference_id === invoice.id
           ) {
             return NextResponse.json({
               url: existingSession.url,
@@ -487,6 +491,7 @@ export async function POST(
               "Could not expire old Checkout Session:",
               expireOldError
             );
+            return errorResponse("Could not safely close the previous payment link. Please try again.", 503);
           }
 
           const {
@@ -512,7 +517,8 @@ export async function POST(
               .eq(
                 "status",
                 "sent"
-              );
+              )
+              .eq("stripe_checkout_session_id", existingSession.id);
 
           if (clearOldError) {
             return errorResponse(
@@ -701,7 +707,8 @@ export async function POST(
               .eq(
                 "status",
                 "sent"
-              );
+              )
+              .eq("stripe_checkout_session_id", existingSession.id);
 
           if (clearError) {
             return errorResponse(
@@ -746,7 +753,8 @@ export async function POST(
             .eq(
               "status",
               "sent"
-            );
+            )
+            .eq("stripe_checkout_session_id", invoice.stripe_checkout_session_id);
 
         if (clearMissingError) {
           return errorResponse(
@@ -765,22 +773,7 @@ export async function POST(
         Date.now() / 1000
       );
 
-    const checkoutLifetimeSeconds =
-      31 * 60;
-
-    const checkoutBucket =
-      Math.floor(
-        nowInSeconds /
-          (30 * 60)
-      );
-
-    /*
-      v2 is intentionally included so Checkout Sessions
-      created before automatic Customer creation cannot be
-      returned by Stripe idempotency after this upgrade.
-    */
-    const idempotencyKey =
-      `invoice-checkout-connect-v2-${invoice.id}-${checkoutBucket}`;
+    const { idempotencyKey, expiresAt } = checkoutWindow(invoice.id, nowInSeconds);
 
     const session =
       await stripe.checkout.sessions.create(
@@ -797,9 +790,7 @@ export async function POST(
           customer_email:
             user.email ?? undefined,
           customer_creation: "always",
-          expires_at:
-            nowInSeconds +
-            checkoutLifetimeSeconds,
+          expires_at: expiresAt,
 
           line_items: [
             {
@@ -902,6 +893,10 @@ export async function POST(
       );
     }
 
+    if (session.status !== "open") {
+      return errorResponse("This payment link is no longer open. Refresh your invoices before trying again.", 409);
+    }
+
     const {
       data: trackedInvoice,
       error: trackingError,
@@ -933,6 +928,9 @@ export async function POST(
           user.id
         )
         .eq("status", "sent")
+        // Only attach to an empty slot, or acknowledge the same Stripe result.
+        // A request crossing a time bucket cannot overwrite another open link.
+        .or(`stripe_checkout_session_id.is.null,stripe_checkout_session_id.eq.${session.id}`)
         .select("id")
         .maybeSingle();
 
@@ -940,6 +938,11 @@ export async function POST(
       trackingError ||
       !trackedInvoice
     ) {
+      if (trackingError) {
+        // A database timeout can happen after commit. Do not expire a session
+        // that another request may already have attached and returned.
+        return errorResponse("Could not confirm the payment link. Please refresh your invoices and try again.", 503);
+      }
       try {
         if (
           session.status === "open"
@@ -957,9 +960,8 @@ export async function POST(
       }
 
       return errorResponse(
-        trackingError?.message ??
-          "Could not attach Checkout to the invoice.",
-        500
+        "The invoice changed while preparing payment. Refresh your invoices before trying again.",
+        409
       );
     }
 

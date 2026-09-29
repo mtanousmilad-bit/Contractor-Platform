@@ -4,6 +4,7 @@ import {
 } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { createRefundOnce, listAllRefunds, RefundConflictError } from "@/lib/stripe/refunds";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,8 @@ function isPrelaunchMode() {
 const PLATFORM_FEE_PERCENT = 5;
 
 type RefundRequestBody = {
+  requestId?: string;
+  expectedRefundedCents?: number;
   invoiceId?: string;
   amount?: number;
   reason?:
@@ -183,7 +186,17 @@ export async function POST(
     }
 
     const invoiceId =
-      body.invoiceId?.trim();
+      typeof body.invoiceId === "string" ? body.invoiceId.trim() : "";
+
+    if (
+      typeof body.requestId !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.requestId) ||
+      typeof body.expectedRefundedCents !== "number" ||
+      !Number.isSafeInteger(body.expectedRefundedCents) ||
+      body.expectedRefundedCents < 0
+    ) {
+      return errorResponse("Refresh the page before issuing a refund.", 400);
+    }
 
     if (!invoiceId) {
       return errorResponse(
@@ -279,17 +292,13 @@ export async function POST(
           chargeId: string,
           latestRefundId: string | null
         ) {
-      const refunds =
-        await stripe.refunds.list({
-          charge: chargeId,
-          limit: 100,
-        });
+      const refunds = await listAllRefunds(stripe, chargeId);
 
       let succeededCents = 0;
       let pendingCents = 0;
       let hasFailedRefund = false;
 
-      for (const refund of refunds.data) {
+      for (const refund of refunds) {
         const status =
           refund.status ?? null;
 
@@ -644,53 +653,6 @@ export async function POST(
       );
     }
 
-    const existingRefunds =
-      await stripe.refunds.list({
-        charge: charge.id,
-        limit: 100,
-      });
-
-    let committedRefundCents = 0;
-
-    for (
-      const refund
-      of existingRefunds.data
-    ) {
-      const status =
-        refund.status ?? null;
-
-      if (
-        status !== "failed" &&
-        status !== "canceled"
-      ) {
-        committedRefundCents +=
-          refund.amount;
-      }
-    }
-
-    const remainingCents =
-      charge.amount -
-      committedRefundCents;
-
-    if (remainingCents <= 0) {
-      return errorResponse(
-        "This payment has already been fully refunded.",
-        409
-      );
-    }
-
-    if (
-      refundAmountInCents >
-      remainingCents
-    ) {
-      return errorResponse(
-        `Maximum refundable amount is A$${(
-          remainingCents / 100
-        ).toFixed(2)}.`,
-        409
-      );
-    }
-
     const stripeReason =
       reason ===
         "requested_by_customer" ||
@@ -698,17 +660,12 @@ export async function POST(
         ? reason
         : undefined;
 
-    /*
-      Idempotency is based on the amount already committed
-      before this request. Browser/network retries therefore
-      cannot create the same refund twice.
-    */
-    const idempotencyKey =
-      `invoice-refund-v1-${invoice.id}-${committedRefundCents}-${refundAmountInCents}`;
-
     const refund =
-      await stripe.refunds.create(
-        {
+      await createRefundOnce(stripe, {
+        requestId: body.requestId,
+        expectedRefundedCents: body.expectedRefundedCents,
+        chargeAmount: charge.amount,
+        params: {
           charge: charge.id,
           amount:
             refundAmountInCents,
@@ -731,10 +688,7 @@ export async function POST(
               reason,
           },
         },
-        {
-          idempotencyKey,
-        }
-      );
+      });
 
     const refundStatus =
       refund.status ??
@@ -811,6 +765,9 @@ export async function POST(
       ...summary,
     });
   } catch (error) {
+    if (error instanceof RefundConflictError) {
+      return NextResponse.json({ error: error.message, refreshRequired: true }, { status: 409 });
+    }
     console.error(
       "Stripe invoice refund error:",
       error

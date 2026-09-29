@@ -3,12 +3,14 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { readRefundAttempt, refundAttemptKey, type RefundAttempt } from "@/lib/refund-attempt";
 
 type ProjectStatus =
   | "not_started"
@@ -120,6 +122,8 @@ export default function InvoicesPage() {
   >("requested_by_customer");
 
   const [error, setError] = useState("");
+  const refundInFlight = useRef(false);
+  const [pendingRefund, setPendingRefund] = useState<RefundAttempt | null>(null);
   const [success, setSuccess] =
     useState("");
 
@@ -511,6 +515,15 @@ export default function InvoicesPage() {
   function openRefundModal(
     invoice: ProjectInvoiceRow
   ) {
+    if (!userId) return;
+    let pending: RefundAttempt | null;
+    try {
+      pending = readRefundAttempt(refundAttemptKey(userId, invoice.id));
+    } catch {
+      setError("Cannot read saved refund details. Enable browser storage and check Stripe before retrying.");
+      return;
+    }
+    setPendingRefund(pending);
     const total =
       Number(invoice.amount);
 
@@ -534,11 +547,11 @@ export default function InvoicesPage() {
     );
 
     setRefundAmount(
-      remaining.toFixed(2)
+      pending ? pending.amount.toFixed(2) : remaining.toFixed(2)
     );
 
     setRefundReason(
-      "requested_by_customer"
+      pending?.reason ?? "requested_by_customer"
     );
 
     setError("");
@@ -566,7 +579,7 @@ export default function InvoicesPage() {
   ) {
     event.preventDefault();
 
-    if (!refundModalInvoiceId) {
+    if (!refundModalInvoiceId || !userId || refundInFlight.current) {
       return;
     }
 
@@ -620,7 +633,7 @@ export default function InvoicesPage() {
     }
 
     if (
-      Math.round(amount * 100) >
+      !pendingRefund && Math.round(amount * 100) >
       Math.round(remaining * 100)
     ) {
       setError(
@@ -631,11 +644,24 @@ export default function InvoicesPage() {
       return;
     }
 
+    refundInFlight.current = true;
     setRefundingId(invoice.id);
     setError("");
     setSuccess("");
 
     try {
+      const attemptKey = refundAttemptKey(userId, invoice.id);
+      const attempt = readRefundAttempt(attemptKey) ?? {
+        requestId: crypto.randomUUID(),
+        invoiceId: invoice.id,
+        amount,
+        reason: refundReason,
+        expectedRefundedCents: Math.round(alreadyRefunded * 100),
+      };
+      // Persist before sending: closing/reloading the page must not turn an
+      // uncertain result into a new refund. Fail closed if storage is unavailable.
+      localStorage.setItem(attemptKey, JSON.stringify(attempt));
+      setPendingRefund(attempt);
       const {
         data: { session },
         error: sessionError,
@@ -663,13 +689,7 @@ export default function InvoicesPage() {
               Authorization:
                 `Bearer ${session.access_token}`,
             },
-            body: JSON.stringify({
-              invoiceId:
-                invoice.id,
-              amount,
-              reason:
-                refundReason,
-            }),
+            body: JSON.stringify(attempt),
           }
         );
 
@@ -683,9 +703,16 @@ export default function InvoicesPage() {
           remainingRefundableAmount?:
             number;
           error?: string;
+          refreshRequired?: boolean;
         };
 
       if (!response.ok) {
+        if (result.refreshRequired) {
+          localStorage.removeItem(attemptKey);
+          setPendingRefund(null);
+          setRefundModalInvoiceId(null);
+          await loadInvoices(false);
+        }
         throw new Error(
           result.error ??
             "Could not create the refund."
@@ -693,6 +720,8 @@ export default function InvoicesPage() {
       }
 
       await loadInvoices(false);
+      localStorage.removeItem(attemptKey);
+      setPendingRefund(null);
 
       setRefundModalInvoiceId(
         null
@@ -701,7 +730,11 @@ export default function InvoicesPage() {
       setRefundAmount("");
 
       setSuccess(
-        result.stripeStatus ===
+        result.stripeStatus === "failed" || result.stripeStatus === "canceled"
+          ? "The refund was not completed. Review the invoice before starting a new refund."
+          : result.stripeStatus === "requires_action"
+          ? "The refund requires attention. Review it in Stripe."
+          : result.stripeStatus ===
           "pending"
           ? `Refund of ${formatCurrency(
               amount
@@ -717,6 +750,7 @@ export default function InvoicesPage() {
           : "Could not create the refund."
       );
     } finally {
+      refundInFlight.current = false;
       setRefundingId(null);
     }
   }
@@ -1672,6 +1706,11 @@ export default function InvoicesPage() {
                 </div>
               </div>
 
+              {pendingRefund && (
+                <p role="status" className="mt-4 rounded-lg bg-amber-50 p-3 text-amber-900">
+                  A previous refund needs confirmation. Submit again to check the same refund safely.
+                </p>
+              )}
               <div className="mt-4">
                 <label
                   htmlFor="refund-amount"
@@ -1685,14 +1724,10 @@ export default function InvoicesPage() {
                     id="refund-amount"
                     type="number"
                     min="0.01"
-                    max={
-                      refundModalRemaining
-                    }
+                    max={pendingRefund ? undefined : refundModalRemaining}
                     step="0.01"
                     required
-                    disabled={Boolean(
-                      refundingId
-                    )}
+                    disabled={Boolean(refundingId || pendingRefund)}
                     value={refundAmount}
                     onChange={(event) =>
                       setRefundAmount(
@@ -1704,9 +1739,7 @@ export default function InvoicesPage() {
 
                   <button
                     type="button"
-                    disabled={Boolean(
-                      refundingId
-                    )}
+                    disabled={Boolean(refundingId || pendingRefund)}
                     onClick={() =>
                       setRefundAmount(
                         refundModalRemaining.toFixed(
@@ -1731,9 +1764,7 @@ export default function InvoicesPage() {
 
                 <select
                   id="refund-reason"
-                  disabled={Boolean(
-                    refundingId
-                  )}
+                  disabled={Boolean(refundingId || pendingRefund)}
                   value={refundReason}
                   onChange={(event) =>
                     setRefundReason(

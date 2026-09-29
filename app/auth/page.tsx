@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 type AccountType = "customer" | "contractor";
@@ -268,6 +269,12 @@ export default function AuthPage() {
                   }`}
           </button>
         </form>
+
+        {isLogin && (
+          <Link href="/forgot-password" className="block text-center mt-4 text-blue-600 hover:underline">
+            Forgot your password?
+          </Link>
+        )}
 
         <button
           type="button"

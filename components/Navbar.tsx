@@ -1098,7 +1098,7 @@ export default function Navbar() {
     );
   }
 
-  if (pathname === "/auth") {
+  if (pathname === "/auth" || pathname === "/forgot-password" || pathname === "/reset-password") {
     return null;
   }
 

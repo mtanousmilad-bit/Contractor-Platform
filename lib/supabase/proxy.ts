@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { redirectWithSession } from "./redirect";
 import {
   NextResponse,
   type NextRequest,
@@ -22,6 +23,9 @@ export async function updateSession(
   let supabaseResponse = NextResponse.next({
     request,
   });
+  // The callback exchanges its own credentials and must not be redirected by
+  // profile onboarding before it can set the recovery session cookies.
+  if (request.nextUrl.pathname === "/auth/callback") return supabaseResponse;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -77,6 +81,11 @@ export async function updateSession(
 
   const isLoggedIn = Boolean(userId);
   const pathname = request.nextUrl.pathname;
+  if (pathname === "/forgot-password") return supabaseResponse;
+  if (pathname === "/reset-password") {
+    return isLoggedIn ? supabaseResponse
+      : redirectWithSession(request, supabaseResponse, "/forgot-password?error=invalid_link");
+  }
 
   const protectedRoutes = [
     "/dashboard",
@@ -86,6 +95,11 @@ export async function updateSession(
     "/requests",
     "/sent-requests",
     "/contact",
+    "/invoices",
+    "/my-invoices",
+    "/messages",
+    "/customer-profile",
+    "/saved-contractors",
   ];
 
   const contractorOnlyRoutes = [
@@ -93,9 +107,13 @@ export async function updateSession(
     "/my-projects",
     "/profile",
     "/requests",
+    "/invoices",
   ];
 
   const customerOnlyRoutes = [
+    "/my-invoices",
+    "/customer-profile",
+    "/saved-contractors",
     "/sent-requests",
     "/contact",
   ];
@@ -106,10 +124,7 @@ export async function updateSession(
     );
 
   if (!isLoggedIn && isProtectedPage) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/auth";
-
-    return NextResponse.redirect(url);
+    return redirectWithSession(request, supabaseResponse, "/auth");
   }
 
   if (!isLoggedIn || !userId) {
@@ -154,18 +169,12 @@ export async function updateSession(
       matchesRoute(pathname, "/profile");
 
     if (!profileExists && !isProfilePage) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/profile";
-
-      return NextResponse.redirect(url);
+      return redirectWithSession(request, supabaseResponse, "/profile");
     }
   }
 
   if (pathname === "/auth") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-
-    return NextResponse.redirect(url);
+    return redirectWithSession(request, supabaseResponse, "/dashboard");
   }
 
   const isContractorOnlyPage =
@@ -182,20 +191,14 @@ export async function updateSession(
     accountType === "customer" &&
     isContractorOnlyPage
   ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-
-    return NextResponse.redirect(url);
+    return redirectWithSession(request, supabaseResponse, "/dashboard");
   }
 
   if (
     accountType === "contractor" &&
     isCustomerOnlyPage
   ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-
-    return NextResponse.redirect(url);
+    return redirectWithSession(request, supabaseResponse, "/dashboard");
   }
 
   return supabaseResponse;

@@ -4,6 +4,7 @@ import {
 } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { listAllRefunds } from "@/lib/stripe/refunds";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -272,17 +273,13 @@ async function reconcileRefundSummary(
   chargeId: string,
   latestRefundId: string | null
 ) {
-  const refunds =
-    await stripe.refunds.list({
-      charge: chargeId,
-      limit: 100,
-    });
+  const refunds = await listAllRefunds(stripe, chargeId);
 
   let succeededCents = 0;
   let pendingCents = 0;
   let hasFailedRefund = false;
 
-  for (const refund of refunds.data) {
+  for (const refund of refunds) {
     const status: string | null =
       refund.status
         ? String(refund.status)
