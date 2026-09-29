@@ -1,41 +1,56 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
     <main className="flex-1 bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white">
-        <div className="max-w-7xl mx-auto px-6 py-20 md:py-28">
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white">
+        <div className="absolute inset-y-0 left-0 w-1.5 bg-amber-400" aria-hidden="true" />
+        <div className="max-w-7xl mx-auto px-6 py-16 md:py-24 grid lg:grid-cols-[1.05fr_0.95fr] items-center gap-12">
           <div className="max-w-3xl">
-            <p className="text-blue-300 font-semibold mb-4">
-              Australian Contractor Marketplace
+            <p className="inline-flex items-center gap-2 text-amber-300 font-semibold mb-5 uppercase tracking-[0.16em] text-sm">
+              <span className="h-2.5 w-2.5 rounded-sm bg-amber-400" aria-hidden="true" />
+              Australian Construction Marketplace
             </p>
 
             <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-              Find the right contractor for your next project
+              Find trusted contractors across Australia
             </h1>
 
             <p className="text-lg md:text-xl text-gray-300 mt-6 leading-8">
-              Browse contractor profiles, view completed
-              projects and send project requests directly
-              through the platform.
+              Compare local construction professionals, view
+              completed work and send your project request—all
+              in one place.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mt-9">
               <Link
                 href="/contractors"
-                className="bg-blue-600 text-white px-7 py-4 rounded-lg text-center font-semibold hover:bg-blue-700"
+                className="bg-amber-400 text-slate-950 px-7 py-4 rounded-lg text-center font-bold hover:bg-amber-300 transition-colors"
               >
                 Find Contractors
               </Link>
 
               <Link
                 href="/auth"
-                className="bg-white text-black px-7 py-4 rounded-lg text-center font-semibold hover:bg-gray-100"
+                className="border border-white/40 bg-white/10 text-white px-7 py-4 rounded-lg text-center font-semibold hover:bg-white/20 transition-colors"
               >
                 Join as a Contractor
               </Link>
             </div>
+          </div>
+
+          <div className="relative lg:justify-self-end w-full max-w-xl">
+            <div className="absolute -inset-5 rounded-[2rem] bg-amber-400/15 blur-2xl" aria-hidden="true" />
+            <Image
+              src="/construction-hero.svg"
+              alt="Construction professional working beside an Australian building project"
+              width={1200}
+              height={900}
+              priority
+              className="relative w-full h-auto rounded-3xl border border-white/15 shadow-2xl"
+            />
           </div>
         </div>
       </section>
@@ -106,7 +121,7 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8 mt-12">
             <div className="text-center">
-              <div className="w-14 h-14 mx-auto rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold">
+              <div className="w-14 h-14 mx-auto rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xl font-bold">
                 1
               </div>
 
@@ -121,7 +136,7 @@ export default function HomePage() {
             </div>
 
             <div className="text-center">
-              <div className="w-14 h-14 mx-auto rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold">
+              <div className="w-14 h-14 mx-auto rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xl font-bold">
                 2
               </div>
 
@@ -136,7 +151,7 @@ export default function HomePage() {
             </div>
 
             <div className="text-center">
-              <div className="w-14 h-14 mx-auto rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold">
+              <div className="w-14 h-14 mx-auto rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xl font-bold">
                 3
               </div>
 

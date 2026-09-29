@@ -1,0 +1,33 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="56" fill="#17233B"/>
+  <circle cx="958" cy="166" r="76" fill="#FBBF24"/>
+  <path d="M0 674C157 600 295 617 426 668C584 730 710 734 867 677C1003 628 1092 632 1200 676V900H0V674Z" fill="#243653"/>
+  <path d="M585 305L804 174L1022 305V672H585V305Z" fill="#F8FAFC"/>
+  <path d="M548 316L804 158L1060 316" stroke="#FBBF24" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M642 342H966V672H642V342Z" fill="#D8E0EA"/>
+  <path d="M690 389H790V488H690V389ZM822 389H922V488H822V389Z" fill="#6EA8D7"/>
+  <path d="M746 535H865V672H746V535Z" fill="#A5653F"/>
+  <path d="M274 177H322V678H274V177Z" fill="#FBBF24"/>
+  <path d="M222 177H372L322 113H274L222 177Z" fill="#FCD34D"/>
+  <path d="M298 137H899" stroke="#FBBF24" stroke-width="30" stroke-linecap="round"/>
+  <path d="M861 138V346" stroke="#FBBF24" stroke-width="12"/>
+  <path d="M829 346H893L880 397H842L829 346Z" fill="#FBBF24"/>
+  <path d="M298 198L390 288M298 288L390 198M298 378L390 288M298 378L390 468M298 468L390 558M298 558L390 648" stroke="#17233B" stroke-width="14"/>
+  <path d="M155 678H1080" stroke="#FBBF24" stroke-width="18" stroke-linecap="round"/>
+  <g transform="translate(410 457)">
+    <circle cx="70" cy="61" r="38" fill="#D9986E"/>
+    <path d="M29 59C29 20 49 0 70 0C92 0 112 20 112 59H29Z" fill="#FBBF24"/>
+    <path d="M17 57H123V77H17V57Z" fill="#FCD34D"/>
+    <path d="M40 104H100L126 221H14L40 104Z" fill="#F59E0B"/>
+    <path d="M46 113L70 160L94 113" stroke="#FFF7D6" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M39 130L0 206M101 130L151 185" stroke="#D9986E" stroke-width="24" stroke-linecap="round"/>
+    <path d="M151 185L194 146" stroke="#D9986E" stroke-width="24" stroke-linecap="round"/>
+    <path d="M111 221L127 318M30 221L16 318" stroke="#17233B" stroke-width="32" stroke-linecap="round"/>
+    <path d="M109 316H159M0 316H42" stroke="#0F172A" stroke-width="28" stroke-linecap="round"/>
+    <path d="M178 132L215 169L187 198L151 160L178 132Z" fill="#CBD5E1"/>
+  </g>
+  <rect x="72" y="62" width="318" height="72" rx="36" fill="#0F172A" fill-opacity="0.78"/>
+  <path d="M111 99L132 78L153 99V123H111V99Z" fill="#FBBF24"/>
+  <path d="M104 101L132 73L160 101" stroke="#FDE68A" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="179" y="110" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="28" font-weight="700">Built for Australian projects</text>
+</svg>

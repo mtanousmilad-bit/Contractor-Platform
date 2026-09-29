@@ -1115,9 +1115,19 @@ export default function Navbar() {
         <div className="min-h-20 flex items-center justify-between gap-4">
           <Link
             href="/"
-            className="text-xl md:text-2xl font-bold whitespace-nowrap"
+            className="flex items-center gap-3 font-bold whitespace-nowrap text-slate-950"
           >
-            Contractor Platform
+            <span className="w-10 h-10 rounded-lg bg-amber-400 flex items-center justify-center shadow-sm" aria-hidden="true">
+              <svg viewBox="0 0 32 32" className="w-7 h-7" fill="none">
+                <path d="M5 15.5 16 6l11 9.5V27H5V15.5Z" fill="#0F172A" />
+                <path d="m3.5 16 12.5-11 12.5 11" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M13 27v-8h6v8" fill="#FBBF24" />
+              </svg>
+            </span>
+            <span className="text-lg md:text-xl leading-tight">
+              Contractor
+              <span className="block text-xs font-semibold tracking-[0.18em] uppercase text-slate-500">Platform Australia</span>
+            </span>
           </Link>
 
           <nav className="hidden xl:flex items-center gap-1">
@@ -1135,7 +1145,7 @@ export default function Navbar() {
                   disabled={
                     loggingOut
                   }
-                  className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 disabled:bg-gray-400"
+                  className="border border-slate-300 text-slate-700 px-5 py-2.5 rounded-lg font-semibold hover:bg-slate-100 disabled:bg-gray-200 disabled:text-gray-500 transition-colors"
                 >
                   {loggingOut
                     ? "Logging Out..."
@@ -1191,7 +1201,7 @@ export default function Navbar() {
                     disabled={
                       loggingOut
                     }
-                    className="w-full bg-red-600 text-white px-4 py-3 rounded-lg font-semibold text-left hover:bg-red-700 disabled:bg-gray-400"
+                    className="w-full border border-slate-300 text-slate-700 px-4 py-3 rounded-lg font-semibold text-left hover:bg-slate-100 disabled:bg-gray-200 disabled:text-gray-500"
                   >
                     {loggingOut
                       ? "Logging Out..."
